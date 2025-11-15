@@ -1,7 +1,7 @@
 from typing import List, Tuple
 from pyprojroot import here
 import random
-from langchain_openai import OpenAIEmbeddings, ChatOpenAI
+from langchain_google_genai import GoogleGenerativeAIEmbeddings, ChatGoogleGenerativeAI
 from langchain.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 import chromadb
@@ -13,16 +13,18 @@ APP_CONFIG = APPConfig.load()
 
 class SpeculativeRAG:
     def __init__(self):
-        self.embeddings = OpenAIEmbeddings(model=APP_CONFIG.embedding_model)
-        self.drafter_llm = ChatOpenAI(
+        self.embeddings = GoogleGenerativeAIEmbeddings(model=APP_CONFIG.embedding_model)
+        self.drafter_llm = ChatGoogleGenerativeAI(
             # For generating drafts
             model=APP_CONFIG.speculative_rag.drafter_llm_model,
-            temperature=APP_CONFIG.speculative_rag.drafter_temperature
+            temperature=APP_CONFIG.speculative_rag.drafter_temperature,
+            convert_system_message_to_human=True
         )
         # Lower temp for consistent scoring
-        self.verifier_llm = ChatOpenAI(
+        self.verifier_llm = ChatGoogleGenerativeAI(
             model=APP_CONFIG.speculative_rag.verifier_llm_model,
-            temperature=APP_CONFIG.speculative_rag.verifier_temperature
+            temperature=APP_CONFIG.speculative_rag.verifier_temperature,
+            convert_system_message_to_human=True
         )
         self.logs = []
         self.retrievers = {}

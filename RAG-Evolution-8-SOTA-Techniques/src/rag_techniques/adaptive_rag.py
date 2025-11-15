@@ -4,7 +4,7 @@ from pydantic import BaseModel, Field
 from langchain_core.runnables import RunnablePassthrough
 from langchain_core.output_parsers import StrOutputParser
 from langchain.prompts import ChatPromptTemplate
-from langchain_openai import OpenAIEmbeddings, ChatOpenAI
+from langchain_google_genai import GoogleGenerativeAIEmbeddings, ChatGoogleGenerativeAI
 import chromadb
 from langchain.schema import Document
 from load_config import APPConfig
@@ -14,10 +14,11 @@ APP_CONFIG = APPConfig.load()
 
 class AdaptiveRAG:
     def __init__(self):
-        self.embeddings = OpenAIEmbeddings(model=APP_CONFIG.embedding_model)
-        self.llm = ChatOpenAI(
+        self.embeddings = GoogleGenerativeAIEmbeddings(model=APP_CONFIG.embedding_model)
+        self.llm = ChatGoogleGenerativeAI(
             model=APP_CONFIG.adaptive_rag.llm_model,
-            temperature=APP_CONFIG.adaptive_rag.temperature
+            temperature=APP_CONFIG.adaptive_rag.temperature,
+            convert_system_message_to_human=True
         )
         self.logs = []
         self.retrievers = {}

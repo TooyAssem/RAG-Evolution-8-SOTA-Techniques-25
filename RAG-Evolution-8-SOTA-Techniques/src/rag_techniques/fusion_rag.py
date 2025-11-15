@@ -1,6 +1,6 @@
 from typing import List, Tuple
 from pyprojroot import here
-from langchain_openai import OpenAIEmbeddings, ChatOpenAI
+from langchain_google_genai import GoogleGenerativeAIEmbeddings, ChatGoogleGenerativeAI
 from langchain.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain.load import dumps, loads
@@ -13,15 +13,17 @@ APP_CONFIG = APPConfig.load()
 
 class FusionRAG:
     def __init__(self):
-        self.embeddings = OpenAIEmbeddings(model=APP_CONFIG.embedding_model)
-        self.query_generator_llm = ChatOpenAI(
+        self.embeddings = GoogleGenerativeAIEmbeddings(model=APP_CONFIG.embedding_model)
+        self.query_generator_llm = ChatGoogleGenerativeAI(
             # For query generation
             model=APP_CONFIG.fusion_rag.query_generator_llm_model,
-            temperature=APP_CONFIG.fusion_rag.query_generator_temperature
+            temperature=APP_CONFIG.fusion_rag.query_generator_temperature,
+            convert_system_message_to_human=True
         )
-        self.answer_generator_llm = ChatOpenAI(
+        self.answer_generator_llm = ChatGoogleGenerativeAI(
             model=APP_CONFIG.fusion_rag.answer_generator_llm_model,
-            temperature=APP_CONFIG.fusion_rag.answer_generator_temperature
+            temperature=APP_CONFIG.fusion_rag.answer_generator_temperature,
+            convert_system_message_to_human=True
         )  # For final answer
         self.logs = []
         self.retrievers = {}

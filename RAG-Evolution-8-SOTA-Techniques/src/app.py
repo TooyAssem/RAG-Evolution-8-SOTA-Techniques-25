@@ -2,6 +2,8 @@ import uuid
 import gradio as gr
 from datetime import datetime
 from dotenv import load_dotenv
+import os
+
 # Import all RAG techniques
 from rag_techniques.standard_rag import StandardRAG
 from rag_techniques.conversational_rag import ConversationalRAG
@@ -14,6 +16,10 @@ from rag_techniques.agentic_rag import AgenticRAG
 from rag_techniques.speculative_rag import SpeculativeRAG
 
 load_dotenv()
+
+# Check for GOOGLE_API_KEY
+if not os.getenv("GOOGLE_API_KEY"):
+    raise ValueError("GOOGLE_API_KEY environment variable not set")
 
 
 class RAGPlayground:
