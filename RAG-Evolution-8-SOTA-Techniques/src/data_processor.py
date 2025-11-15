@@ -1,15 +1,15 @@
 import chromadb
-from openai import OpenAI
+import google.generativeai as genai
 from typing import List, Dict
 from pyprojroot import here
 from load_config import APPConfig
+import os
 
 # Load application configuration
 APP_CONFIG = APPConfig().load()
 
-
-# Configure OpenAI Client - using the same pattern as your working file
-client = OpenAI()  # Will use OPENAI_API_KEY from environment
+# Configure Google Gemini client
+genai.configure(api_key=os.environ["GOOGLE_API_KEY"])
 
 
 class DataPrep:
@@ -18,14 +18,14 @@ class DataPrep:
             path=str(here(APP_CONFIG.chroma_db_path)))
 
     def _get_embedding(self, text: str) -> List[float]:
-        """Get OpenAI embedding for text using latest model"""
+        """Get Google Gemini embedding for text using the specified model"""
         try:
-            response = client.embeddings.create(
-                model=APP_CONFIG.embedding_model,  # Latest embedding model
-                input=text,
-                encoding_format="float"
+            result = genai.embed_content(
+                model=APP_CONFIG.embedding_model,
+                content=text,
+                task_type="retrieval_document"
             )
-            return response.data[0].embedding
+            return result['embedding']
         except Exception as e:
             print(f"Error getting embedding: {e}")
             return []

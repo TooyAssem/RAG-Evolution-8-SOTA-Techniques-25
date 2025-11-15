@@ -1,6 +1,6 @@
 from typing import List, Tuple
 from pyprojroot import here
-from langchain_openai import OpenAIEmbeddings, ChatOpenAI
+from langchain_google_genai import GoogleGenerativeAIEmbeddings, ChatGoogleGenerativeAI
 from langchain.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnablePassthrough
@@ -13,10 +13,11 @@ APP_CONFIG = APPConfig.load()
 
 class StandardRAG:
     def __init__(self):
-        self.embeddings = OpenAIEmbeddings(model=APP_CONFIG.embedding_model)
-        self.llm = ChatOpenAI(
+        self.embeddings = GoogleGenerativeAIEmbeddings(model=APP_CONFIG.embedding_model)
+        self.llm = ChatGoogleGenerativeAI(
             model=APP_CONFIG.standard_rag.llm_model,
-            temperature=APP_CONFIG.standard_rag.temperature
+            temperature=APP_CONFIG.standard_rag.temperature,
+            convert_system_message_to_human=True
         )
         self.logs = []
         self.retrievers = {}

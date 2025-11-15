@@ -1,7 +1,6 @@
-
 from typing import List, Tuple
 from pyprojroot import here
-from langchain_openai import OpenAIEmbeddings, ChatOpenAI
+from langchain_google_genai import GoogleGenerativeAIEmbeddings, ChatGoogleGenerativeAI
 from langchain.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnablePassthrough
@@ -9,17 +8,22 @@ from pydantic import BaseModel, Field
 from load_config import APPConfig
 import chromadb
 from langchain.schema import Document
-from openai import OpenAI
 
 APP_CONFIG = APPConfig.load()
 
 
 class CorrectiveRAG:
     def __init__(self):
-        self.embeddings = OpenAIEmbeddings(model=APP_CONFIG.embedding_model)
-        self.llm = ChatOpenAI(
+        self.embeddings = GoogleGenerativeAIEmbeddings(model=APP_CONFIG.embedding_model)
+        self.llm = ChatGoogleGenerativeAI(
             model=APP_CONFIG.corrective_rag.llm_model,
-            temperature=APP_CONFIG.corrective_rag.temperature
+            temperature=APP_CONFIG.corrective_rag.temperature,
+            convert_system_message_to_human=True
+        )
+        self.web_search_llm = ChatGoogleGenerativeAI(
+            model=APP_CONFIG.corrective_rag.web_search_model,
+            temperature=APP_CONFIG.corrective_rag.temperature,
+            convert_system_message_to_human=True
         )
         self.logs = []
         self.retrievers = {}
@@ -130,26 +134,21 @@ class CorrectiveRAG:
         """Optimized web search with token limits"""
         try:
             self._log(
-                "Web Search: Using OpenAI's web search tool (minimal tokens)")
-
-            client = OpenAI()
+                "Web Search: Using Gemini for web search (simulated)")
 
             # Create a more focused search query
-            # Limit query length!!!
             focused_query = f"Brief summary: {query[:50]}"
 
-            response = client.responses.create(
-                model=APP_CONFIG.corrective_rag.web_search_model,
-                tools=[{
-                    "type": "web_search_preview",
-                    "search_context_size": "low"
-                }],
-                input=f"Give a concise 2-sentence answer for: {focused_query}"
-            )
+            prompt_template = """
+            You are a simulated web search engine. Provide a concise, factual summary of the most current information regarding the following query.
+            Query: "{query}"
+            """
+            prompt = ChatPromptTemplate.from_template(prompt_template)
+            chain = prompt | self.web_search_llm | StrOutputParser()
+            web_content = chain.invoke({"query": focused_query})
 
-            web_content = response.output_text
 
-            # Truncate to maximum 500 characters to control tokens
+            # Truncate to maximum 2000 characters to control tokens
             if len(web_content) > 2000:
                 web_content = web_content[:2000] + "..."
                 self._log(
@@ -193,7 +192,7 @@ class CorrectiveRAG:
                 self._log(f"Document {i+1}: Grading failed - {str(e)}")
                 need_web_search = True
 
-        relevance_ratio = len(relevant_docs) / len(documents)
+        relevance_ratio = len(relevant_docs) / len(documents) if documents else 0
         self._log(
             f"Document Grading: {len(relevant_docs)}/{len(documents)} relevant ({relevance_ratio:.1%})")
 

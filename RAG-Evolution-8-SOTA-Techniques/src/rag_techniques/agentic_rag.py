@@ -1,10 +1,9 @@
 from typing import List, Tuple, Dict, Any
 from pyprojroot import here
-from langchain_openai import OpenAIEmbeddings, ChatOpenAI
+from langchain_google_genai import GoogleGenerativeAIEmbeddings, ChatGoogleGenerativeAI
 from langchain.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain.schema import Document
-from openai import OpenAI
 import chromadb
 from load_config import APPConfig
 
@@ -13,9 +12,10 @@ APP_CONFIG = APPConfig.load()
 
 class AgenticRAG:
     def __init__(self):
-        self.embeddings = OpenAIEmbeddings(model=APP_CONFIG.embedding_model)
-        self.llm = ChatOpenAI(model=APP_CONFIG.agentic_rag.llm_model,
-                              temperature=APP_CONFIG.agentic_rag.temperature)
+        self.embeddings = GoogleGenerativeAIEmbeddings(model=APP_CONFIG.embedding_model)
+        self.llm = ChatGoogleGenerativeAI(model=APP_CONFIG.agentic_rag.llm_model,
+                                          temperature=APP_CONFIG.agentic_rag.temperature,
+                                          convert_system_message_to_human=True)
         self.logs = []
         self.retrievers = {}
         self._setup_retrievers()
@@ -260,18 +260,13 @@ class AgenticRAG:
         self._log("Agent: Tool Agent performing web search for current information")
 
         try:
-            client = OpenAI()
-
-            response = client.responses.create(
-                model=APP_CONFIG.agentic_rag.llm_model,
-                tools=[{
-                    "type": "web_search_preview",
-                    "search_context_size": "low"
-                }],
-                input=f"Current information about: {query[:35]}"
-            )
-
-            web_content = response.output_text
+            prompt_template = """
+            You are a simulated web search engine. Provide a concise, factual summary of the most current information regarding the following query.
+            Query: "{query}"
+            """
+            prompt = ChatPromptTemplate.from_template(prompt_template)
+            chain = prompt | self.tool_agent | StrOutputParser()
+            web_content = chain.invoke({"query": query})
 
             # Limit content size
             if len(web_content) > 350:
